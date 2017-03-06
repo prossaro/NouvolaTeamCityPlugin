@@ -1,0 +1,4 @@
+com/nouvola/teamcity/nouvolaDiveCloudPlugin/AppAgent.class
+com/nouvola/teamcity/nouvolaDiveCloudPlugin/BasicBuildProcess.class
+com/nouvola/teamcity/nouvolaDiveCloudPlugin/NouvolaDiveCloudBuildProcess.class
+com/nouvola/teamcity/nouvolaDiveCloudPlugin/NouvolaDiveCloudAgentBuildRunner.class
