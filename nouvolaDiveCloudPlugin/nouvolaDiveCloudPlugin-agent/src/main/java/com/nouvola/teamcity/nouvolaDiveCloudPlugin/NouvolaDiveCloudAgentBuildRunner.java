@@ -11,10 +11,10 @@ import org.jetbrains.annotations.NotNull;
 
 public class NouvolaDiveCloudAgentBuildRunner implements AgentBuildRunner, AgentBuildRunnerInfo {
 
-    public BuildProcess createBuildProcess(@NotNull AgentRunningBuild arb,
-                                           @NotNull BuildRunnerContext brc) throws RunBuildException{
+    public BuildProcess createBuildProcess(@NotNull AgentRunningBuild build,
+                                           @NotNull BuildRunnerContext context) throws RunBuildException{
 
-        return new NouvolaDiveCloudBuildProcess(arb, brc);
+        return new NouvolaDiveCloudBuildProcess(build, context);
     }
 
     public AgentBuildRunnerInfo getRunnerInfo()
