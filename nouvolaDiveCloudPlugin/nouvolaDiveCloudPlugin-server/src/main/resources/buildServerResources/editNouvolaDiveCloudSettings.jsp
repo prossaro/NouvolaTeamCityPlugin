@@ -26,4 +26,18 @@
             <span class="smallNote" >Your Nouvola DiveCloud API Key</span>            
         </td>        
     </tr>
+    <tr>
+        <th><label for="returnURL">Return URL (optional): </label></th>
+        <td><props:textProperty name="returnURL"/>
+            <span class="error" id="error_returnURL" />
+            <span class="smallNote" >If you would like to receive a callback after triggering a test, enter a URL that DiveCloud can send a callback to</span>
+        </td>        
+    </tr>
+    <tr>
+        <th><label for="timeOut">Listener Time Out in minutes (optional): </label></th>
+        <td><props:textProperty name="timeOut"/>
+            <span class="error" id="error_timeOut" />
+            <span class="smallNote" >How long to keep the listener open (defaults to 60 minutes)</span>
+        </td>        
+    </tr>
 </l:settingsGroup>

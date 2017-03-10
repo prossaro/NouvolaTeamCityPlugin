@@ -63,12 +63,12 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
                 conn.setRequestProperty("x-api", apiKey);
                 
                 if(data != null){
-                    OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
+                    OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream(), "UTF-8");
                     writer.write(data);
                     writer.flush();
                 }
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
                 String line;
                 String result = "";
 
@@ -134,7 +134,7 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
         int listenPort = -1;
 
         // first check if a return URL is available for webhooks
-        logger.progressStarted("Checking if there is a return URL");
+        logger.progressStarted("Checking if there is a return URL...");
         if(returnUrl != null){
             try{
                 URL url = new URL(returnUrl);
@@ -157,7 +157,7 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
             regData.put("event", "run_plan");
             regData.put("resource_id", planId);
             regData.put("url", returnUrl);
-            status = sendHTTPRequest(registerURL, "POST", apiKey, regData.toString());
+            status = sendHTTPRequest(registerUrl, "POST", apiKey, regData.toString());
             logger.progressMessage(status.message);
             if(!status.pass) return BuildFinishedStatus.FINISHED_FAILED;
             logger.progressMessage("Setup Success");
@@ -166,11 +166,89 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
         logger.progressFinished();
 
         // trigger the test
-        logger.progressStarted("Triggering the DiveCloud Test Plan");                
+        logger.progressStarted("Triggering the DiveCloud Test Plan: " + triggerUrl);                
         status = sendHTTPRequest(triggerUrl, "POST", apiKey, null);
-        logger.progressMessage(status.message);
+        if(!status.pass){
+            logger.progressMessage("Triggering failed: " + status.message);
+            logger.progressFinished();
+            return BuildFinishedStatus.FINISHED_FAILED;
+        }
+        logger.progressMessage("Triggering passed: " + status.message);
         logger.progressFinished();
-        if(!status.pass) return BuildFinishedStatus.FINISHED_FAILED;
+        if(!isWebhook) return BuildFinishedStatus.FINISHED_SUCCESS;
+
+        // if there is a webhook open up a socket and listen for a callback
+        logger.progressStarted("Listening for a callback on port " + listenPort + "...");
+        try{
+            boolean posted = false;
+            int timeout = 60; //timeout defaults to 60 minutes
+            String jsonMsg = "";
+            ServerSocket server = new ServerSocket(listenPort);
+            if(listenTimeOut != null){
+                timeout = Integer.parseInt(listenTimeOut);
+            }
+            server.setSoTimeout(timeout * 60000);
+            // listen until something is posted
+            while(!posted){
+                Socket socket = server.accept();
+                BufferedReader clientSent = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
+                BufferedWriter clientResp = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+                String line = clientSent.readLine();
+                int contLength = 0;
+                if(line != null && line.contains("POST")){
+                    while(!line.isEmpty()){
+                        if(line.contains("Content-Length")){
+                            contLength = Integer.parseInt(line.substring(16));
+                        }
+                        line = clientSent.readLine();
+                        if(line == null) line = "";
+                    }
+                    // now read the json message
+                    int bufChar = 0;
+                    while(contLength > 0){
+                        bufChar = clientSent.read();
+                        char msgChar = (char) bufChar;
+                        jsonMsg = jsonMsg.concat(String.valueOf(msgChar));
+                        contLength = contLength - 1;
+                    }
+                    clientResp.write("HTTP/1.1 200 OK\r\n\r\n" + "Accepted");
+                    posted = true;
+                }
+                else{
+                    clientResp.write("HTTP/1.1 200 OK\r\n\r\n" + "Accepts POST requests only");
+                }
+                clientResp.close();
+                clientSent.close();
+                socket.close();
+            }
+            if(server != null) server.close();
+            if(!jsonMsg.isEmpty()){
+                status = parseJSONString(jsonMsg, "outcome");
+                if(!status.pass){
+                    logger.progressMessage("Test Failed: " + status.message);
+                    logger.progressFinished();
+                    return BuildFinishedStatus.FINISHED_FAILED;
+                }
+
+            }
+            else{
+                logger.progressMessage("Nothing returned by DiveCloud Test");
+                logger.progressFinished();
+                return BuildFinishedStatus.FINISHED_FAILED;
+            }
+        }
+        catch(SocketTimeoutException ex){
+            logger.progressMessage("No callback received - timing out. Please check on your test at Nouvola DiveCloud");
+            logger.progressFinished();
+            return BuildFinishedStatus.FINISHED_FAILED;
+        }
+        catch(IOException ex){
+            logger.progressMessage("Socket server error: " + ex);
+            logger.progressFinished();
+            return BuildFinishedStatus.FINISHED_FAILED;
+        }
+        logger.progressMessage("DiveCloud Test outcome: " + status.message);
+        logger.progressFinished();
         return BuildFinishedStatus.FINISHED_SUCCESS;
     }
 }
