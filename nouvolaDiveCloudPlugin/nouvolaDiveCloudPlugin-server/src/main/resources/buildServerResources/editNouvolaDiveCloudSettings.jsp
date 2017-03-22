@@ -26,6 +26,17 @@
             <span class="smallNote" >Your Nouvola DiveCloud API Key</span>            
         </td>        
     </tr>
+</l:settingsGroup>
+<l:settingsGroup title="Polling Options">
+    <tr>
+        <th><label for="waitTime">Wait Time (optional): </label></th>
+        <td><props:textProperty name="waitTime"/>
+            <span class="error" id="error_waitTime"/>
+            <span class="smallNote" >If you prefer not to receive a callback after triggering a test, you can specify a wait time in minutes after which to poll for results. This can be helpful in reducing CPU cycles while waiting for a long test to complete</span>            
+        </td>        
+    </tr>
+</l:settingsGroup>
+<l:settingsGroup title="Webhook Options">
     <tr>
         <th><label for="returnURL">Return URL (optional): </label></th>
         <td><props:textProperty name="returnURL"/>

@@ -7,14 +7,23 @@ import jetbrains.buildServer.agent.AgentRunningBuild;
 import jetbrains.buildServer.agent.BuildAgentConfiguration;
 import jetbrains.buildServer.agent.BuildProcess;
 import jetbrains.buildServer.agent.BuildRunnerContext;
+import jetbrains.buildServer.agent.artifacts.ArtifactsWatcher;
 import org.jetbrains.annotations.NotNull;
 
 public class NouvolaDiveCloudAgentBuildRunner implements AgentBuildRunner, AgentBuildRunnerInfo {
 
+    @NotNull
+    private final ArtifactsWatcher artifactsWatcher;
+
+    public NouvolaDiveCloudAgentBuildRunner(@NotNull ArtifactsWatcher artifactsWatcher)
+    {
+        this.artifactsWatcher = artifactsWatcher;
+    }
+
     public BuildProcess createBuildProcess(@NotNull AgentRunningBuild build,
                                            @NotNull BuildRunnerContext context) throws RunBuildException{
 
-        return new NouvolaDiveCloudBuildProcess(build, context);
+        return new NouvolaDiveCloudBuildProcess(build, context, this.artifactsWatcher);
     }
 
     public AgentBuildRunnerInfo getRunnerInfo()
