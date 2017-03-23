@@ -325,7 +325,6 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
 
         boolean test_pass = false;
         if(!jsonMsg.isEmpty()){
-            logger.progressMessage(jsonMsg);
             status = parseJSONString(jsonMsg, "outcome");
             if(status.pass && status.message.equals("Pass")){
                 logger.progressMessage("DiveCloud test passed");
