@@ -163,7 +163,7 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
         boolean isWebhook = false;
         int listenPort = -1;
         String results_begin = "<!DOCTYPE html><html><body>View test results: <a href='";
-        String results_link = "https://divecloud.nouvola.com/tests/"; //placeholder for now
+        String results_link = "";
         String results_middle = "'>";
         String results_end = "</a></body></html>";
         String results_file = "results_link.html";
@@ -323,23 +323,33 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
             }
         }
 
+        boolean test_pass = false;
         if(!jsonMsg.isEmpty()){
+            logger.progressMessage(jsonMsg);
             status = parseJSONString(jsonMsg, "outcome");
             if(status.pass && status.message.equals("Pass")){
                 logger.progressMessage("DiveCloud test passed");
+                test_pass = true;
             }
             else{
                 logger.progressMessage("Test Failed: " + status.message);
             }
             // create artifact
-            String link = results_begin + results_link + testId + results_middle + results_link + testId + results_end;
+            ProcessStatus link_status = parseJSONString(jsonMsg, "shareable_link");
+            if(!link_status.pass){
+                logger.progressMessage(link_status.message);
+                logger.progressFinished();
+                return BuildFinishedStatus.FINISHED_FAILED;
+            }
+            results_link = link_status.message;
+            String link = results_begin + results_link + results_middle + results_link + results_end;
             String writeStatus = writeToFile(results_file, link);
             if(!writeStatus.isEmpty()){
                 logger.progressMessage("Failed to create artifact: " + writeStatus);
                 logger.progressFinished();
                 return BuildFinishedStatus.FINISHED_FAILED;
             }
-            logger.progressMessage("Report ready: " + results_link + testId);
+            logger.progressMessage("Report ready: " + results_link);
         }
         else{
             logger.progressMessage("Nothing returned by DiveCloud Test - empty JSON message");
@@ -347,8 +357,8 @@ public class NouvolaDiveCloudBuildProcess extends FutureBasedBuildProcess {
             return BuildFinishedStatus.FINISHED_FAILED;
         }
 
-        logger.progressMessage("DiveCloud Test outcome: " + status.message);
         logger.progressFinished();
+        if(!test_pass) return BuildFinishedStatus.FINISHED_FAILED;
         return BuildFinishedStatus.FINISHED_SUCCESS;
     }
 }
